@@ -1,0 +1,148 @@
+{
+  "pipeline_rules_config": {
+    "network_interface_parsing": [
+      {
+        "regex": "Interface (?<Interface>[^\\s^.^,]*)"
+      },
+      // the backslash is escaped the original regex is Interface (?<Interface>[^\s^.^,]*)
+      {
+        "regex": "Interface (?<Interface>.*),.*"
+      },
+      {
+        "regex": "neighbor (?>>neighbor>(?:(?:\\d{1,3}\\.){3}(?:\\d{1,3}))|(?:(?:::)?(?:[\\dA-Fa-f]{1,4}:{1,2}){1,7}(?:[\\d\\%A-Fa-z\\.]+)?(?:::)?)|(?:::[\\dA-Fa-f\\.]{1,15})|(?:::)).*"
+      },
+      {
+        "regex": "Adjacency to (?>>adjacency>([a-z0-9\\.*]+ \\(.*\\))) \\(.*"
+      },
+      {
+        "regex": "neighbor (?>>neighbor>(?:(?:\\d{1,3}\\.){3}(?:\\d{1,3}))|(?:(?:::)?(?:[\\dA-Fa-f]{1,4}:{1,2}){1,7}(?:[\\d\\%A-Fa-z\\.]+)?(?:::)?)|(?:::[\\dA-Fa-f\\.]{1,15})|(?:::)):[0-9]+.*"
+      }
+    ],
+    "tagging": [
+      {
+        "source": "getMessage()",
+        "source_regex": ".*l2-PLIM_ETHER-2-RX_LF*",
+        "tag_name": "type",
+        "tag_value": "'interface'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*L2-BM-6-ACTIVE*",
+        "tag_name": "type",
+        "tag_value": "'interface'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*PKT_INFRA-LINK-3-UPDOWN*",
+        "tag_name": "type",
+        "tag_value": "'interface'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*PKT_INFRA-LINEPROTO-5-UPDOWN*",
+        "tag_name": "type",
+        "tag_value": "'interface'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*ROUTING-BGP-5-ADJCHANGE*",
+        "tag_name": "type",
+        "tag_value": "'bgp'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*ROUTING-ISIS-5-ADJCHANGE*",
+        "tag_name": "type",
+        "tag_value": "'isis'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*ROUTING-LDP-5-NBR_CHANGE*",
+        "tag_name": "type",
+        "tag_value": "'l2vpn'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*TEMP_HOT*",
+        "tag_name": "type",
+        "tag_value": "'overheat'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*OVER_TEMP*",
+        "tag_name": "type",
+        "tag_value": "'overheat'"
+      },
+      {
+        "source": "getMessage()",
+        "source_regex": ".*GigabitEthernet*",
+        "tag_name": "ignore",
+        "tag_value": "'true'"
+      },
+      {
+        "source": "getFqdn()",
+        "source_regex": ".*.comcast.net",
+        "tag_name": "division",
+        "tag_value": "'cran'"
+      },
+      {
+        "source": "getFqdn()",
+        "source_regex": ".*.[ci]bone.comcast.net",
+        "tag_name": "division",
+        "tag_value": "'backbone'"
+      },
+      {
+        "source": "getFqdn()",
+        "source_regex": ".*.mgmt.comcast.net",
+        "tag_name": "division",
+        "tag_value": "'transport'"
+      },
+      {
+        "source": "getFqdn()",
+        "source_regex": "^(mr|sw).*.mgmt.comcast.net",
+        "tag_name": "division",
+        "tag_value": "'backbone'"
+      },
+      //TODO: check if this regex ever triggered
+      {
+        "source": "getFqdn()",
+        "source_regex": "-d..*",
+        "tag_name": "division",
+        "tag_value": "'datacenter'"
+      },
+      {
+        "source": "getFqdn()",
+        "source_regex": ".*.ebone.comcast.net",
+        "tag_name": "division",
+        "tag_value": "'enterprise'"
+      },
+      {
+        "source": "getInterfaceDescription()",
+        "source_regex": ".*",
+        "tag_name": "interface_description",
+        "tag_value": "getInterfaceDescription()"
+      }
+    ],
+    "filtering": "getTags().containsKey('type') && !getTags().containsKey('ignore')",
+    "aggregating": [
+      {
+        "ref": "overheatAggregator"
+      },
+      //too complex logic to run as expression
+      {
+        "ref": "linkFlapAggregator"
+      },
+      //    {"key": "interface","expression": "getNetworkInterface() + '_' + getFqdn() + '<=>' + payload2.getNetworkInterface() + '_' + payload2.getFqdn()"}
+
+      {
+        "ref": "defaultSmartAggregator",
+        "aggregates": [
+          {
+            "key": "interface",
+            "value": "getFqdn() + '_' + getNetworkInterface()"
+          }
+        ]
+      }
+    ]
+  }
+}
